@@ -1,0 +1,1001 @@
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text.Json;
+
+// Transaction record
+public record Transaction(int Id, DateTime Date, decimal Amount, string Category);
+
+// Transaction Processor Interface
+public interface ITransactionProcessor
+{
+    void Process(Transaction transaction);
+}
+
+// Concrete processor implementations
+public class BankTransferProcessor : ITransactionProcessor
+{
+    public void Process(Transaction transaction)
+    {
+        Console.WriteLine($"[Bank Transfer] Processing ${transaction.Amount} for {transaction.Category}");
+    }
+}
+
+public class MobileMoneyProcessor : ITransactionProcessor
+{
+    public void Process(Transaction transaction)
+    {
+        Console.WriteLine($"[Mobile Money] Processing ${transaction.Amount} for {transaction.Category}");
+    }
+}
+
+public class CryptoWalletProcessor : ITransactionProcessor
+{
+    public void Process(Transaction transaction)
+    {
+        Console.WriteLine($"[Crypto Wallet] Processing ${transaction.Amount} for {transaction.Category}");
+    }
+}
+
+// Base Account class
+public class Account
+{
+    public string AccountNumber { get; }
+    public decimal Balance { get; protected set; }
+
+    public Account(string accountNumber, decimal initialBalance)
+    {
+        AccountNumber = accountNumber;
+        Balance = initialBalance;
+    }
+
+    public virtual void ApplyTransaction(Transaction transaction)
+    {
+        Balance -= transaction.Amount;
+        Console.WriteLine($"Transaction applied. New balance: ${Balance}");
+    }
+}
+
+// Sealed SavingsAccount class
+public sealed class SavingsAccount : Account
+{
+    public SavingsAccount(string accountNumber, decimal initialBalance) 
+        : base(accountNumber, initialBalance) {}
+
+    public override void ApplyTransaction(Transaction transaction)
+    {
+        if (transaction.Amount > Balance)
+        {
+            Console.WriteLine("Insufficient funds");
+            return;
+        }
+        
+        base.ApplyTransaction(transaction);
+    }
+}
+
+// Main application class
+public class FinanceApp
+{
+    private readonly List<Transaction> _transactions = new();
+
+    public void Run()
+    {
+        // Create a savings account with initial balance of 1000
+        var savingsAccount = new SavingsAccount("SAV123456789", 1000m);
+        Console.WriteLine($"Account {savingsAccount.AccountNumber} created with initial balance: ${savingsAccount.Balance}");
+
+        // Create sample transactions
+        var transactions = new List<Transaction>
+        {
+            new(1, DateTime.Now, 150m, "Groceries"),
+            new(2, DateTime.Now, 75.50m, "Utilities"),
+            new(3, DateTime.Now, 45.99m, "Entertainment")
+        };
+
+        // Create processors
+        var mobileMoneyProcessor = new MobileMoneyProcessor();
+        var bankTransferProcessor = new BankTransferProcessor();
+        var cryptoWalletProcessor = new CryptoWalletProcessor();
+
+        // Process transactions
+        Console.WriteLine("\nProcessing transactions...");
+        
+        // Transaction 1 - Mobile Money
+        var transaction1 = transactions[0];
+        mobileMoneyProcessor.Process(transaction1);
+        savingsAccount.ApplyTransaction(transaction1);
+        _transactions.Add(transaction1);
+
+        // Transaction 2 - Bank Transfer
+        var transaction2 = transactions[1];
+        bankTransferProcessor.Process(transaction2);
+        savingsAccount.ApplyTransaction(transaction2);
+        _transactions.Add(transaction2);
+
+        // Transaction 3 - Crypto Wallet
+        var transaction3 = transactions[2];
+        cryptoWalletProcessor.Process(transaction3);
+        savingsAccount.ApplyTransaction(transaction3);
+        _transactions.Add(transaction3);
+
+        Console.WriteLine($"\nTotal transactions processed: {_transactions.Count}");
+        Console.WriteLine($"Final account balance: ${savingsAccount.Balance}");
+    }
+}
+
+// ============================================
+// Healthcare System Implementation
+// ============================================
+
+// Generic Repository for entity management
+public class Repository<T> where T : class
+{
+    private readonly List<T> _items = new();
+
+    public void Add(T item)
+    {
+        _items.Add(item);
+    }
+
+    public List<T> GetAll()
+    {
+        return new List<T>(_items);
+    }
+
+    public T? GetById(Func<T, bool> predicate)
+    {
+        return _items.FirstOrDefault(predicate);
+    }
+
+    public bool Remove(Func<T, bool> predicate)
+    {
+        var item = _items.FirstOrDefault(predicate);
+        if (item != null)
+        {
+            return _items.Remove(item);
+        }
+        return false;
+    }
+}
+
+// Patient class
+public class Patient
+{
+    public int Id { get; }
+    public string Name { get; set; }
+    public int Age { get; set; }
+    public string Gender { get; set; }
+
+    public Patient(int id, string name, int age, string gender)
+    {
+        Id = id;
+        Name = name ?? throw new ArgumentNullException(nameof(name));
+        Age = age;
+        Gender = gender ?? throw new ArgumentNullException(nameof(gender));
+    }
+
+    public override string ToString()
+    {
+        return $"ID: {Id}, Name: {Name}, Age: {Age}, Gender: {Gender}";
+    }
+}
+
+// Prescription class
+public class Prescription
+{
+    public int Id { get; }
+    public int PatientId { get; }
+    public string MedicationName { get; set; }
+    public DateTime DateIssued { get; set; }
+
+    public Prescription(int id, int patientId, string medicationName, DateTime dateIssued)
+    {
+        Id = id;
+        PatientId = patientId;
+        MedicationName = medicationName ?? throw new ArgumentNullException(nameof(medicationName));
+        DateIssued = dateIssued;
+    }
+
+    public override string ToString()
+    {
+        return $"Prescription ID: {Id}, Medication: {MedicationName}, Date Issued: {DateIssued:yyyy-MM-dd}";
+    }
+}
+
+// Health System Application
+public class HealthSystemApp
+{
+    private readonly Repository<Patient> _patientRepo = new();
+    private readonly Repository<Prescription> _prescriptionRepo = new();
+    private readonly Dictionary<int, List<Prescription>> _prescriptionMap = new();
+
+    public void SeedData()
+    {
+        // Add sample patients
+        _patientRepo.Add(new Patient(1, "Sarah Sarfo", 35, "Male"));
+        _patientRepo.Add(new Patient(2, "Jane Smith", 28, "Female"));
+        _patientRepo.Add(new Patient(3, "Robert Johnson", 42, "Male"));
+
+        // Add sample prescriptions
+        _prescriptionRepo.Add(new Prescription(101, 1, "Ibuprofen", DateTime.Now.AddDays(-10)));
+        _prescriptionRepo.Add(new Prescription(102, 1, "Amoxicillin", DateTime.Now.AddDays(-5)));
+        _prescriptionRepo.Add(new Prescription(103, 2, "Loratadine", DateTime.Now.AddDays(-3)));
+        _prescriptionRepo.Add(new Prescription(104, 3, "Metformin", DateTime.Now.AddDays(-1)));
+        _prescriptionRepo.Add(new Prescription(105, 2, "Lisinopril", DateTime.Now));
+    }
+
+    public void BuildPrescriptionMap()
+    {
+        _prescriptionMap.Clear();
+        
+        // Group prescriptions by PatientId
+        var allPrescriptions = _prescriptionRepo.GetAll();
+        foreach (var prescription in allPrescriptions)
+        {
+            if (!_prescriptionMap.ContainsKey(prescription.PatientId))
+            {
+                _prescriptionMap[prescription.PatientId] = new List<Prescription>();
+            }
+            _prescriptionMap[prescription.PatientId].Add(prescription);
+        }
+    }
+
+    public void PrintAllPatients()
+    {
+        Console.WriteLine("\n=== All Patients ===");
+        var patients = _patientRepo.GetAll();
+        foreach (var patient in patients)
+        {
+            Console.WriteLine(patient);
+        }
+    }
+
+    public void PrintPrescriptionsForPatient(int patientId)
+    {
+        var patient = _patientRepo.GetById(p => p.Id == patientId);
+        if (patient == null)
+        {
+            Console.WriteLine($"\nPatient with ID {patientId} not found.");
+            return;
+        }
+
+        Console.WriteLine($"\n=== Prescriptions for {patient.Name} (ID: {patient.Id}) ===");
+        
+        if (_prescriptionMap.TryGetValue(patientId, out var prescriptions) && prescriptions.Any())
+        {
+            foreach (var prescription in prescriptions)
+            {
+                Console.WriteLine($"- {prescription}");
+            }
+        }
+        else
+        {
+            Console.WriteLine("No prescriptions found for this patient.");
+        }
+    }
+
+    public List<Prescription> GetPrescriptionsByPatientId(int patientId)
+    {
+        return _prescriptionMap.TryGetValue(patientId, out var prescriptions) 
+            ? prescriptions 
+            : new List<Prescription>();
+    }
+}
+
+// ============================================
+// Warehouse Inventory Management System
+// ============================================
+
+// Marker Interface for Inventory Items
+public interface IInventoryItem
+{
+    int Id { get; }
+    string Name { get; }
+    int Quantity { get; set; }
+}
+
+// Custom Exceptions
+public class DuplicateItemException : Exception
+{
+    public DuplicateItemException(string message) : base(message) { }
+}
+
+public class ItemNotFoundException : Exception
+{
+    public ItemNotFoundException(string message) : base(message) { }
+}
+
+public class InvalidQuantityException : Exception
+{
+    public InvalidQuantityException(string message) : base(message) { }
+}
+
+// Product Classes
+public class ElectronicItem : IInventoryItem
+{
+    public int Id { get; }
+    public string Name { get; }
+    public int Quantity { get; set; }
+    public string Brand { get; }
+    public int WarrantyMonths { get; }
+
+    public ElectronicItem(int id, string name, int quantity, string brand, int warrantyMonths)
+    {
+        Id = id;
+        Name = name ?? throw new ArgumentNullException(nameof(name));
+        Quantity = quantity >= 0 ? quantity : throw new ArgumentOutOfRangeException(nameof(quantity));
+        Brand = brand ?? throw new ArgumentNullException(nameof(brand));
+        WarrantyMonths = warrantyMonths >= 0 ? warrantyMonths : throw new ArgumentOutOfRangeException(nameof(warrantyMonths));
+    }
+
+    public override string ToString()
+    {
+        return $"Electronic: {Name} (ID: {Id}), Brand: {Brand}, Quantity: {Quantity}, Warranty: {WarrantyMonths} months";
+    }
+}
+
+public class GroceryItem : IInventoryItem
+{
+    public int Id { get; }
+    public string Name { get; }
+    public int Quantity { get; set; }
+    public DateTime ExpiryDate { get; }
+
+    public GroceryItem(int id, string name, int quantity, DateTime expiryDate)
+    {
+        Id = id;
+        Name = name ?? throw new ArgumentNullException(nameof(name));
+        Quantity = quantity >= 0 ? quantity : throw new ArgumentOutOfRangeException(nameof(quantity));
+        ExpiryDate = expiryDate;
+    }
+
+    public override string ToString()
+    {
+        return $"Grocery: {Name} (ID: {Id}), Quantity: {Quantity}, Expires: {ExpiryDate:yyyy-MM-dd}";
+    }
+}
+
+// Generic Inventory Repository
+public class InventoryRepository<T> where T : IInventoryItem
+{
+    private readonly Dictionary<int, T> _items = new();
+
+    public void AddItem(T item)
+    {
+        if (_items.ContainsKey(item.Id))
+        {
+            throw new DuplicateItemException($"Item with ID {item.Id} already exists.");
+        }
+        _items[item.Id] = item;
+    }
+
+    public T GetItemById(int id)
+    {
+        if (!_items.TryGetValue(id, out var item))
+        {
+            throw new ItemNotFoundException($"Item with ID {id} not found.");
+        }
+        return item;
+    }
+
+    public void RemoveItem(int id)
+    {
+        if (!_items.ContainsKey(id))
+        {
+            throw new ItemNotFoundException($"Cannot remove. Item with ID {id} not found.");
+        }
+        _items.Remove(id);
+    }
+
+    public List<T> GetAllItems()
+    {
+        return _items.Values.ToList();
+    }
+
+    public void UpdateQuantity(int id, int newQuantity)
+    {
+        if (newQuantity < 0)
+        {
+            throw new InvalidQuantityException($"Quantity cannot be negative. Attempted to set {newQuantity} for item ID {id}.");
+        }
+
+        if (!_items.TryGetValue(id, out var item))
+        {
+            throw new ItemNotFoundException($"Cannot update. Item with ID {id} not found.");
+        }
+
+        item.Quantity = newQuantity;
+    }
+}
+
+// Warehouse Manager
+public class WareHouseManager
+{
+    private readonly InventoryRepository<ElectronicItem> _electronics = new();
+    private readonly InventoryRepository<GroceryItem> _groceries = new();
+
+    public void SeedData()
+    {
+        // Add sample electronic items
+        _electronics.AddItem(new ElectronicItem(1, "Smartphone", 50, "Samsung", 24));
+        _electronics.AddItem(new ElectronicItem(2, "Laptop", 30, "Dell", 36));
+        _electronics.AddItem(new ElectronicItem(3, "Headphones", 100, "Sony", 12));
+
+        // Add sample grocery items
+        _groceries.AddItem(new GroceryItem(101, "Milk", 200, DateTime.Now.AddDays(7)));
+        _groceries.AddItem(new GroceryItem(102, "Bread", 150, DateTime.Now.AddDays(3)));
+        _groceries.AddItem(new GroceryItem(103, "Eggs", 300, DateTime.Now.AddDays(21)));
+    }
+
+    public void PrintAllItems<T>(InventoryRepository<T> repo) where T : IInventoryItem
+    {
+        var items = repo.GetAllItems();
+        Console.WriteLine($"\n=== {typeof(T).Name}s ===");
+        if (items.Count == 0)
+        {
+            Console.WriteLine("No items found.");
+            return;
+        }
+
+        foreach (var item in items)
+        {
+            Console.WriteLine(item);
+        }
+    }
+
+    public void IncreaseStock<T>(InventoryRepository<T> repo, int id, int quantity) where T : IInventoryItem
+    {
+        try
+        {
+            var item = repo.GetItemById(id);
+            repo.UpdateQuantity(id, item.Quantity + quantity);
+            Console.WriteLine($"Increased stock for item ID {id} by {quantity}. New quantity: {item.Quantity + quantity}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error increasing stock: {ex.Message}");
+        }
+    }
+
+    public void RemoveItemById<T>(InventoryRepository<T> repo, int id) where T : IInventoryItem
+    {
+        try
+        {
+            repo.RemoveItem(id);
+            Console.WriteLine($"Item with ID {id} has been removed successfully.");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error removing item: {ex.Message}");
+        }
+    }
+
+    // Helper methods to access repositories
+    public InventoryRepository<ElectronicItem> Electronics => _electronics;
+    public InventoryRepository<GroceryItem> Groceries => _groceries;
+}
+
+// ============================================
+// Student Grading System
+// ============================================
+
+// Custom Exceptions
+public class InvalidScoreFormatException : Exception
+{
+    public InvalidScoreFormatException(string message) : base(message) { }
+}
+
+public class MissingFieldException : Exception
+{
+    public MissingFieldException(string message) : base(message) { }
+}
+
+// Student Class
+public class Student
+{
+    public int Id { get; }
+    public string FullName { get; }
+    public int Score { get; }
+
+    public Student(int id, string fullName, int score)
+    {
+        Id = id;
+        FullName = fullName ?? throw new ArgumentNullException(nameof(fullName));
+        Score = score >= 0 && score <= 100 
+            ? score 
+            : throw new ArgumentOutOfRangeException(nameof(score), "Score must be between 0 and 100");
+    }
+
+    public string GetGrade()
+    {
+        return Score switch
+        {
+            >= 80 and <= 100 => "A",
+            >= 70 and < 80 => "B",
+            >= 60 and < 70 => "C",
+            >= 50 and < 60 => "D",
+            _ => "F"
+        };
+    }
+
+    public override string ToString()
+    {
+        return $"{FullName} (ID: {Id}): Score = {Score}, Grade = {GetGrade()}";
+    }
+}
+
+// Student Result Processor
+public class StudentResultProcessor
+{
+    public List<Student> ReadStudentsFromFile(string inputFilePath)
+    {
+        var students = new List<Student>();
+
+        using var reader = new StreamReader(inputFilePath);
+        int lineNumber = 0;
+
+        while (!reader.EndOfStream)
+        {
+            lineNumber++;
+            string? line = reader.ReadLine();
+            if (string.IsNullOrWhiteSpace(line)) continue;
+
+            try
+            {
+                string[] fields = line.Split(',');
+                
+                // Validate number of fields
+                if (fields.Length != 3)
+                {
+                    throw new MissingFieldException(
+                        $"Line {lineNumber}: Expected 3 fields but found {fields.Length}. Line: '{line}'");
+                }
+
+                // Parse ID
+                if (!int.TryParse(fields[0].Trim(), out int id))
+                {
+                    throw new MissingFieldException(
+                        $"Line {lineNumber}: Invalid student ID format. Line: '{line}'");
+                }
+
+                string fullName = fields[1].Trim();
+                if (string.IsNullOrEmpty(fullName))
+                {
+                    throw new MissingFieldException(
+                        $"Line {lineNumber}: Student name cannot be empty. Line: '{line}'");
+                }
+
+                // Parse score
+                if (!int.TryParse(fields[2].Trim(), out int score) || score < 0 || score > 100)
+                {
+                    throw new InvalidScoreFormatException(
+                        $"Line {lineNumber}: Score must be an integer between 0 and 100. Line: '{line}'");
+                }
+
+                students.Add(new Student(id, fullName, score));
+            }
+            catch (Exception ex) when (ex is not (MissingFieldException or InvalidScoreFormatException))
+            {
+                throw new Exception($"Error processing line {lineNumber}: {ex.Message}", ex);
+            }
+        }
+
+        return students;
+    }
+
+    public void WriteReportToFile(List<Student> students, string outputFilePath)
+    {
+        using var writer = new StreamWriter(outputFilePath);
+        
+        writer.WriteLine("STUDENT GRADE REPORT");
+        writer.WriteLine("===================\n");
+        
+        if (students.Count == 0)
+        {
+            writer.WriteLine("No student records found.");
+            return;
+        }
+
+        // Sort students by grade then by name
+        var sortedStudents = students
+            .OrderBy(s => s.GetGrade())
+            .ThenBy(s => s.FullName)
+            .ToList();
+
+        foreach (var student in sortedStudents)
+        {
+            writer.WriteLine(student);
+        }
+
+        // Add summary
+        writer.WriteLine("\nSUMMARY");
+        writer.WriteLine("=======");
+        writer.WriteLine($"Total Students: {students.Count}");
+        writer.WriteLine($"Highest Score: {students.Max(s => s.Score)}");
+        writer.WriteLine($"Lowest Score: {students.Min(s => s.Score)}");
+        writer.WriteLine($"Average Score: {students.Average(s => s.Score):F2}");
+        
+        // Count by grade
+        var grades = students.GroupBy(s => s.GetGrade())
+            .OrderBy(g => g.Key);
+            
+        foreach (var gradeGroup in grades)
+        {
+            writer.WriteLine($"Grade {gradeGroup.Key}: {gradeGroup.Count()} students");
+        }
+    }
+}
+
+// ============================================
+// Inventory Management System
+// ============================================
+
+// Marker Interface
+public interface IInventoryEntity
+{
+    int Id { get; }
+}
+
+// Immutable Record
+public record InventoryItem(int Id, string Name, int Quantity, DateTime DateAdded) : IInventoryEntity;
+
+// Generic Inventory Logger
+public class InventoryLogger<T> where T : IInventoryEntity
+{
+    private readonly List<T> _log = new();
+    private readonly string _filePath;
+    private readonly JsonSerializerOptions _jsonOptions = new() 
+    { 
+        WriteIndented = true,
+        PropertyNameCaseInsensitive = true
+    };
+
+    public InventoryLogger(string filePath)
+    {
+        _filePath = filePath ?? throw new ArgumentNullException(nameof(filePath));
+    }
+
+    public void Add(T item)
+    {
+        if (item == null)
+            throw new ArgumentNullException(nameof(item));
+            
+        _log.Add(item);
+        Console.WriteLine($"Added item: {item}");
+    }
+
+    public IReadOnlyList<T> GetAll() => _log.AsReadOnly();
+
+    public void SaveToFile()
+    {
+        try
+        {
+            string json = JsonSerializer.Serialize(_log, _jsonOptions);
+            File.WriteAllText(_filePath, json);
+            Console.WriteLine($"Successfully saved {_log.Count} items to {_filePath}");
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or NotSupportedException)
+        {
+            Console.WriteLine($"Error saving to file: {ex.Message}");
+            throw;
+        }
+    }
+
+    public void LoadFromFile()
+    {
+        try
+        {
+            if (!File.Exists(_filePath))
+            {
+                Console.WriteLine("No existing inventory file found. Starting with empty inventory.");
+                _log.Clear();
+                return;
+            }
+
+            string json = File.ReadAllText(_filePath);
+            var items = JsonSerializer.Deserialize<List<T>>(json, _jsonOptions);
+            
+            _log.Clear();
+            if (items != null)
+            {
+                _log.AddRange(items);
+            }
+            
+            Console.WriteLine($"Successfully loaded {_log.Count} items from {_filePath}");
+        }
+        catch (JsonException ex)
+        {
+            Console.WriteLine($"Error parsing inventory file: {ex.Message}");
+            throw;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or NotSupportedException)
+        {
+            Console.WriteLine($"Error reading from file: {ex.Message}");
+            throw;
+        }
+    }
+}
+
+// Inventory Application
+public class InventoryApp
+{
+    private readonly InventoryLogger<InventoryItem> _logger;
+    private const string InventoryFile = "inventory.json";
+
+    public InventoryApp()
+    {
+        _logger = new InventoryLogger<InventoryItem>(InventoryFile);
+    }
+
+    public void SeedSampleData()
+    {
+        var items = new List<InventoryItem>
+        {
+            new(1, "Laptop", 10, DateTime.Now.AddDays(-30)),
+            new(2, "Smartphone", 25, DateTime.Now.AddDays(-15)),
+            new(3, "Headphones", 50, DateTime.Now.AddDays(-7)),
+            new(4, "Keyboard", 30, DateTime.Now.AddDays(-3)),
+            new(5, "Mouse", 40, DateTime.Now)
+        };
+
+        foreach (var item in items)
+        {
+            _logger.Add(item);
+        }
+        
+        Console.WriteLine("\n=== Sample data seeded successfully ===");
+    }
+
+    public void SaveData()
+    {
+        try
+        {
+            _logger.SaveToFile();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Failed to save data: {ex.Message}");
+        }
+    }
+
+    public void LoadData()
+    {
+        try
+        {
+            _logger.LoadFromFile();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Failed to load data: {ex.Message}");
+        }
+    }
+
+    public void PrintAllItems()
+    {
+        var items = _logger.GetAll();
+        
+        if (!items.Any())
+        {
+            Console.WriteLine("No items in inventory.");
+            return;
+        }
+
+        Console.WriteLine("\n=== Current Inventory ===");
+        Console.WriteLine($"{"ID",-5} | {"Name",-15} | {"Quantity",-8} | Date Added");
+        Console.WriteLine(new string('-', 60));
+        
+        foreach (var item in items.OrderBy(i => i.Id))
+        {
+            Console.WriteLine($"{item.Id,-5} | {item.Name,-15} | {item.Quantity,-8} | {item.DateAdded:yyyy-MM-dd}");
+        }
+        
+        Console.WriteLine($"\nTotal items: {items.Count}");
+        Console.WriteLine($"Total quantity: {items.Sum(i => i.Quantity)}");
+    }
+}
+
+// Update the Program class to include inventory system demo
+partial class Program
+{
+    static void RunInventoryDemo()
+    {
+        Console.WriteLine("\n" + new string('=', 50));
+        Console.WriteLine("INVENTORY MANAGEMENT SYSTEM");
+        Console.WriteLine(new string('=', 50));
+
+        try
+        {
+            // Create and initialize the app
+            var app = new InventoryApp();
+            
+            Console.WriteLine("\n=== Seeding sample data... ===");
+            app.SeedSampleData();
+            
+            Console.WriteLine("\n=== Saving data to file... ===");
+            app.SaveData();
+            
+            Console.WriteLine("\n=== Creating new instance to simulate new session... ===");
+            var newApp = new InventoryApp();
+            
+            Console.WriteLine("\n=== Loading data from file... ===");
+            newApp.LoadData();
+            
+            Console.WriteLine("\n=== Displaying loaded inventory... ===");
+            newApp.PrintAllItems();
+            
+            Console.WriteLine("\n=== Inventory demo completed successfully ===");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"An error occurred in the inventory demo: {ex.Message}");
+        }
+    }
+}
+
+// Update the Main method to include the inventory demo
+partial class Program
+{
+    static void Main(string[] args)
+    {
+        // Run Finance Application
+        var financeApp = new FinanceApp();
+        financeApp.Run();
+        
+        Console.WriteLine("\n" + new string('=', 50));
+        Console.WriteLine("HEALTHCARE SYSTEM");
+        Console.WriteLine(new string('=', 50));
+        
+        // Run Healthcare Application
+        var healthApp = new HealthSystemApp();
+        healthApp.SeedData();
+        healthApp.BuildPrescriptionMap();
+        healthApp.PrintAllPatients();
+        healthApp.PrintPrescriptionsForPatient(1);
+
+        Console.WriteLine("\n" + new string('=', 50));
+        Console.WriteLine("WAREHOUSE INVENTORY SYSTEM");
+        Console.WriteLine(new string('=', 50));
+        
+        // Run Warehouse Application
+        RunWarehouseDemo();
+
+        RunGradingSystem();
+        
+        RunInventoryDemo();
+        
+        // Keep the console window open
+        Console.WriteLine("\nPress any key to exit...");
+        Console.ReadKey();
+    }
+
+    static void RunWarehouseDemo()
+    {
+        var warehouse = new WareHouseManager();
+        
+        try
+        {
+            // Seed initial data
+            warehouse.SeedData();
+            
+            // Print all items
+            warehouse.PrintAllItems(warehouse.Groceries);
+            warehouse.PrintAllItems(warehouse.Electronics);
+            
+            // Demonstrate error handling
+            Console.WriteLine("\n=== Testing Error Handling ===");
+            
+            // Try to add a duplicate item
+            try
+            {
+                warehouse.Electronics.AddItem(new ElectronicItem(1, "Duplicate Phone", 10, "Test", 12));
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Expected error (adding duplicate): {ex.Message}");
+            }
+            
+            // Try to remove non-existent item
+            try
+            {
+                warehouse.RemoveItemById(warehouse.Groceries, 999);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Expected error (removing non-existent): {ex.Message}");
+            }
+            
+            // Try to update with invalid quantity
+            try
+            {
+                warehouse.Electronics.UpdateQuantity(1, -5);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Expected error (invalid quantity): {ex.Message}");
+            }
+            
+            // Demonstrate successful operations
+            Console.WriteLine("\n=== Demonstrating Successful Operations ===");
+            warehouse.IncreaseStock(warehouse.Groceries, 101, 50); // Add 50 to Milk
+            warehouse.RemoveItemById(warehouse.Electronics, 3); // Remove Headphones
+            
+            // Print final state
+            Console.WriteLine("\n=== Final Inventory State ===");
+            warehouse.PrintAllItems(warehouse.Groceries);
+            warehouse.PrintAllItems(warehouse.Electronics);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"An unexpected error occurred: {ex.Message}");
+        }
+    }
+
+    static void RunGradingSystem()
+    {
+        Console.WriteLine("\n" + new string('=', 50));
+        Console.WriteLine("STUDENT GRADING SYSTEM");
+        Console.WriteLine(new string('=', 50));
+
+        var processor = new StudentResultProcessor();
+        string inputFile = "students.txt";
+        string outputFile = "grade_report.txt";
+
+        try
+        {
+            // Create sample input file if it doesn't exist
+            if (!File.Exists(inputFile))
+            {
+                File.WriteAllText(inputFile, 
+                    "11261099, Sarah Sarfo, 85\n" +
+                    "11261099, Sarah Sarfo, 92\n" +
+                    "11261099, Sarah Sarfo, 78\n" +
+                    "11261099, Sarah Sarfo, 65\n" +
+                    "11261099, Robert Wilson, 55\n" +
+                    "11261099, Jennifer Lee, 42\n" +
+                    "11261099, David Miller, 95");
+                Console.WriteLine($"Created sample input file: {Path.GetFullPath(inputFile)}");
+            }
+
+            Console.WriteLine($"Reading student data from: {Path.GetFullPath(inputFile)}");
+            var students = processor.ReadStudentsFromFile(inputFile);
+            
+            Console.WriteLine($"Writing grade report to: {Path.GetFullPath(outputFile)}");
+            processor.WriteReportToFile(students, outputFile);
+            
+            Console.WriteLine("\nGrade report generated successfully!");
+            Console.WriteLine("\nReport Summary:");
+            Console.WriteLine($"- Processed {students.Count} student records");
+            Console.WriteLine($"- Highest score: {students.Max(s => s.Score)}");
+            Console.WriteLine($"- Average score: {students.Average(s => s.Score):F1}");
+            
+            // Display grade distribution
+            var gradeGroups = students
+                .GroupBy(s => s.GetGrade())
+                .OrderBy(g => g.Key);
+                
+            Console.WriteLine("\nGrade Distribution:");
+            foreach (var group in gradeGroups)
+            {
+                Console.WriteLine($"- Grade {group.Key}: {group.Count()} students");
+            }
+        }
+        catch (FileNotFoundException ex)
+        {
+            Console.WriteLine($"Error: The file {ex.FileName} could not be found.");
+        }
+        catch (InvalidScoreFormatException ex)
+        {
+            Console.WriteLine($"Error: Invalid score format - {ex.Message}");
+        }
+        catch (MissingFieldException ex)
+        {
+            Console.WriteLine($"Error: Missing or invalid field - {ex.Message}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"An unexpected error occurred: {ex.Message}");
+        }
+    }
+}
