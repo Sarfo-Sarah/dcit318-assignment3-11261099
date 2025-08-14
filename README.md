@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # DCIT 318 - Programming 2 - Assignment 3
 
 ## Student Information
@@ -92,3 +93,6 @@ This project demonstrates advanced C# programming concepts including:
 
 ## Author
 Sarah Sarfo - 11261099
+=======
+# dcit318-assignment3-11261099
+>>>>>>> 74230982c5ae8643188be326ba44c2ebd0f1c1b5
